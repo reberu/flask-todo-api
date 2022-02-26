@@ -1,27 +1,48 @@
 from project.app import app, db
-from flask import jsonify, abort, make_response, request, url_for
+from flask import jsonify, abort, make_response, request, url_for, render_template
 from project.app.models import Tasks
 
 API_URI = '/todo/api/v1.0/tasks'
 
 
 @app.route('/')
+@app.route('/index')
 def index():
-    return 'Hello, World!'
+    return render_template("index.html")
 
 
-@app.route(API_URI, methods=['GET'])
+@app.route('/ping', methods=['GET'])
+def ping_pong():
+    return jsonify('pong!')
+
+
+@app.route('/tasks', methods=['GET', 'POST'])
 def get_tasks():
-    tasks = Tasks.query.all()
-    output = []
-    for task in tasks:
-        task_data = {
-            'title': task.title,
-            'description': task.description,
-            'done': task.done
-        }
-        output.append(task_data)
-    return jsonify({'tasks': list(map(make_public_task, output))})
+    response_object = {'status': 'success'}
+    if request.method == 'POST':
+        post_data = request.get_json()
+        new_task = Tasks(
+            title=post_data['title'],
+            description=post_data['description'],
+            done=False
+        )
+        db.session.add(new_task)
+        db.session.commit()
+        response_object['message'] = 'Task added!'
+    else:
+        tasks = Tasks.query.all()
+        output = []
+        for task in tasks:
+            task_data = {
+                'id': task.id,
+                'title': task.title,
+                'description': task.description,
+                'done': task.done
+            }
+            output.append(task_data)
+        response_object['tasks'] = output
+    # return jsonify({'tasks': list(map(make_public_task, output))})
+    return jsonify(response_object)
 
 
 @app.route(API_URI + '/<int:task_id>', methods=['GET'])
