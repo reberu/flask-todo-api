@@ -1,6 +1,6 @@
 #!flask/bin/python
 from flask_script import Manager
-from project.app import app, db
+from project.app import app, db, views
 
 manager = Manager(app)
 
