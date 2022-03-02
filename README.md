@@ -34,9 +34,19 @@ $ python manage.py create_db
 $ python manage.py runserver
 ```
 
-Access the application at the address [http://localhost:5000/](http://localhost:5000)
+Access the application at the address [http://localhost:5000](http://localhost:5000)
 
 > Want to specify a different port?
 > ```sh
 > $ python manage.py runserver -h 0.0.0.0 -p 8080
 > ```
+
+### Run the client-side Vue app in different terminal window
+
+```sh
+$ cd client
+$ npm install
+$ npm run dev
+```
+
+Access the application at the address [http://localhost:8080](http://localhost:8080)
