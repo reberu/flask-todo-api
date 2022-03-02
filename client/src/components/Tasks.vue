@@ -25,8 +25,18 @@
                 <span v-else>No</span>
               </td>
               <td>
-                <button type="button" class="btn btn-warning btn-sm">Update</button>
-                <button type="button" class="btn btn-danger btn-sm">Delete</button>
+                <button
+                        type="button"
+                        class="btn btn-warning btn-sm"
+                        v-b-modal.task-update-modal
+                        @click="editTask(task)">
+                  Update
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-danger btn-sm" @click="onDeleteTask(task)">
+                  Delete
+                </button>
               </td>
             </tr>
           </tbody>
@@ -38,33 +48,79 @@
              title="Add a new task"
              hide-footer>
       <b-form @submit="onSubmit" @reset="onReset" class="w-100">
-        <b-form-group id="form-title-group"
+      <b-form-group id="form-title-group"
+                    label="Title:"
+                    label-for="from-title-input">
+        <b-form-input id="form-title-input"
+                      type="text"
+                      v-model="addTaskForm.title"
+                      required
+                      placeholder="Enter title">
+        </b-form-input>
+      </b-form-group>
+      <b-form-group id="form-description-group"
+                    label="Description:"
+                    label-for="form-description-input">
+        <b-form-input id="form-description-input"
+                      type="text"
+                      v-model="addTaskForm.description"
+                      required
+                      placeholder="Enter description">
+        </b-form-input>
+      </b-form-group>
+      <b-form-group id="form-done-group">
+        <b-form-checkbox-group id="form-checks">
+          <b-form-checkbox value="true"
+                           v-model="addTaskForm.done"
+                           unchecked="false">
+            Done?
+          </b-form-checkbox>
+        </b-form-checkbox-group>
+      </b-form-group>
+        <b-button-group>
+          <b-button type="submit" variant="primary">Submit</b-button>
+          <b-button type="reset" variant="danger">Reset</b-button>
+        </b-button-group>
+      </b-form>
+    </b-modal>
+    <b-modal ref="editTaskModal"
+             id="task-update-modal"
+             title="Update"
+             hide-footer>
+      <b-form @submit="onSubmitUpdate" @reset="onResetUpdate" class="w-100">
+        <b-form-group id="form-title-edit-group"
                       label="Title:"
-                      label-for="from-title-input">
-          <b-form-input id="form-title-input"
+                      label-for="form-title-edit-input">
+          <b-form-input id="form-title-edit-input"
                         type="text"
-                        v-model="addTaskForm.title"
+                        v-model="editTaskForm.title"
                         required
                         placeholder="Enter title">
           </b-form-input>
         </b-form-group>
-        <b-form-group id="form-description-group"
+        <b-form-group id="form-description-edit-group"
                       label="Description:"
-                      label-for="form-description-input">
-          <b-form-input id="form-description-input"
+                      label-for="form-description-edit-input">
+          <b-form-input id="form-description-edit-input"
                         type="text"
-                        v-model="addTaskForm.description"
+                        v-model="editTaskForm.description"
                         required
                         placeholder="Enter description">
           </b-form-input>
         </b-form-group>
-        <b-form-group id="form-done-group">
-          <b-form-checkbox-group v-model="addTaskForm.done" id="form-done">
-            <b-form-checkbox value="true">Done?</b-form-checkbox>
+        <b-form-group id="form-done-edit-group">
+          <b-form-checkbox-group id="form-checks">
+            <b-form-checkbox value="true"
+                             unchecked="false"
+                             v-model="editTaskForm.done">
+              Done?
+            </b-form-checkbox>
           </b-form-checkbox-group>
         </b-form-group>
-        <b-button type="submit" variant="primary">Submit</b-button>
-        <b-button type="reset" variant="danger">Reset</b-button>
+        <b-button-group>
+          <b-button type="submit" variant="primary">Update</b-button>
+          <b-button type="reset" variant="danger">Cancel</b-button>
+        </b-button-group>
       </b-form>
     </b-modal>
   </div>
@@ -72,7 +128,7 @@
 
 <script>
 import axios from 'axios'
-import Alert from './Alert'
+import Alert from './Alert.vue'
 
 export default {
   data () {
@@ -84,7 +140,13 @@ export default {
         done: []
       },
       message: '',
-      showMessage: false
+      showMessage: false,
+      editTaskForm: {
+        id: '',
+        title: '',
+        description: '',
+        done: []
+      }
     }
   },
   components: {
@@ -98,7 +160,7 @@ export default {
           this.tasks = res.data.tasks
         })
         .catch((error) => {
-          // eslint-disable no-new
+          // eslint-disable-next-line
           console.error(error)
         })
     },
@@ -111,7 +173,7 @@ export default {
           this.showMessage = true
         })
         .catch((error) => {
-          // eslint-disable no-new
+          // eslint-disable-next-line
           console.log(error)
           this.getTasks()
         })
@@ -120,16 +182,20 @@ export default {
       this.addTaskForm.title = ''
       this.addTaskForm.description = ''
       this.addTaskForm.done = []
+      this.editTaskForm.id = ''
+      this.editTaskForm.title = ''
+      this.editTaskForm.description = ''
+      this.editTaskForm.done = []
     },
     onSubmit (evt) {
       evt.preventDefault()
       this.$refs.addTaskModal.hide()
       let done = false
-      if (this.addTaskForm.done[0]) done = true
+      if (this.addTaskForm.done) done = true
       const payload = {
         title: this.addTaskForm.title,
         description: this.addTaskForm.description,
-        done
+        done // property shorthand
       }
       this.addTask(payload)
       this.initForm()
@@ -138,6 +204,58 @@ export default {
       evt.preventDefault()
       this.$refs.addTaskModal.hide()
       this.initForm()
+    },
+    editTask (task) {
+      this.editTaskForm = task
+    },
+    onSubmitUpdate (evt) {
+      evt.preventDefault()
+      this.$refs.editTaskModal.hide()
+      let done = false
+      if (this.editTaskForm.done) done = true
+      const payload = {
+        title: this.editTaskForm.title,
+        description: this.editTaskForm.description,
+        done // property shorthand
+      }
+      this.updateTask(payload, this.editTaskForm.id)
+    },
+    updateTask (payload, taskID) {
+      const path = `http://localhost:5000/tasks/${taskID}`
+      axios.put(path, payload)
+        .then(() => {
+          this.getTasks()
+          this.message = 'Task updated!'
+          this.showMessage = true
+        })
+        .catch((error) => {
+          // eslint-disable-next-line
+          console.error(error)
+          this.getTasks()
+        })
+    },
+    onResetUpdate (evt) {
+      evt.preventDefault()
+      this.$refs.editTaskModal.hide()
+      this.initForm()
+      this.getTasks()
+    },
+    removeTask (taskID) {
+      const path = `http://localhost:5000/tasks/${taskID}`
+      axios.delete(path)
+        .then(() => {
+          this.getTasks()
+          this.message = 'Task removed!'
+          this.showMessage = true
+        })
+        .catch((error) => {
+          // eslint-disable-next-line
+          console.error(error)
+          this.getTasks()
+        })
+    },
+    onDeleteTask (task) {
+      this.removeTask(task.id)
     }
   },
   created () {
